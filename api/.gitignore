@@ -1,0 +1,29 @@
+# Azure Functions artifacts
+bin/
+obj/
+appsettings.json
+local.settings.json
+
+# Node artifacts
+node_modules/
+dist/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Python artifacts
+__pycache__/
+*.py[cod]
+*$py.class
+.python_packages/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db

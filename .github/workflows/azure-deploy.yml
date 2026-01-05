@@ -1,0 +1,244 @@
+name: Deploy to Azure
+
+on:
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+
+# Required for OIDC authentication
+permissions:
+  id-token: write
+  contents: read
+  pull-requests: write
+
+env:
+  TERRAFORM_VERSION: '1.7.0'
+  NODE_VERSION: '20'
+  AZURE_FUNCTIONAPP_PACKAGE_PATH: './api'
+  REACT_APP_PATH: './frontend'
+
+jobs:
+  terraform:
+    name: 'Terraform Deploy'
+    runs-on: ubuntu-latest
+    environment: production
+    outputs:
+      function_app_name: ${{ steps.terraform_output.outputs.function_app_name }}
+      static_web_app_name: ${{ steps.terraform_output.outputs.static_web_app_name }}
+      static_web_app_api_key: ${{ steps.terraform_output.outputs.static_web_app_api_key }}
+      function_app_url: ${{ steps.terraform_output.outputs.function_app_url }}
+      static_web_app_url: ${{ steps.terraform_output.outputs.static_web_app_url }}
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Azure Login via OIDC
+        uses: azure/login@v2
+        with:
+          client-id: ${{ secrets.AZURE_CLIENT_ID }}
+          tenant-id: ${{ secrets.AZURE_TENANT_ID }}
+          subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: ${{ env.TERRAFORM_VERSION }}
+          terraform_wrapper: true
+
+      - name: Terraform Format Check
+        id: fmt
+        run: terraform fmt -check -recursive
+        working-directory: ./infra
+        continue-on-error: true
+
+      - name: Terraform Init
+        id: init
+        run: |
+          terraform init \
+            -backend-config="resource_group_name=${{ secrets.TERRAFORM_STATE_RG }}" \
+            -backend-config="storage_account_name=${{ secrets.TERRAFORM_STATE_STORAGE }}" \
+            -backend-config="container_name=${{ secrets.TERRAFORM_STATE_CONTAINER }}" \
+            -backend-config="key=full-stack-demo.terraform.tfstate"
+        working-directory: ./infra
+        env:
+          ARM_CLIENT_ID: ${{ secrets.AZURE_CLIENT_ID }}
+          ARM_SUBSCRIPTION_ID: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+          ARM_TENANT_ID: ${{ secrets.AZURE_TENANT_ID }}
+          ARM_USE_OIDC: true
+
+      - name: Terraform Validate
+        id: validate
+        run: terraform validate -no-color
+        working-directory: ./infra
+
+      - name: Terraform Plan
+        id: plan
+        run: |
+          terraform plan \
+            -var="subscription_id=${{ secrets.AZURE_SUBSCRIPTION_ID }}" \
+            -var="entra_app_client_id=${{ secrets.AZURE_CLIENT_ID }}" \
+            -var="entra_app_tenant_id=${{ secrets.AZURE_TENANT_ID }}" \
+            -out=tfplan \
+            -no-color
+        working-directory: ./infra
+        env:
+          ARM_CLIENT_ID: ${{ secrets.AZURE_CLIENT_ID }}
+          ARM_SUBSCRIPTION_ID: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+          ARM_TENANT_ID: ${{ secrets.AZURE_TENANT_ID }}
+          ARM_USE_OIDC: true
+
+      - name: Terraform Apply
+        id: apply
+        run: terraform apply -auto-approve tfplan
+        working-directory: ./infra
+        env:
+          ARM_CLIENT_ID: ${{ secrets.AZURE_CLIENT_ID }}
+          ARM_SUBSCRIPTION_ID: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+          ARM_TENANT_ID: ${{ secrets.AZURE_TENANT_ID }}
+          ARM_USE_OIDC: true
+
+      - name: Get Terraform Outputs
+        id: terraform_output
+        run: |
+          echo "function_app_name=$(terraform output -raw function_app_name)" >> $GITHUB_OUTPUT
+          echo "static_web_app_name=$(terraform output -raw static_web_app_name)" >> $GITHUB_OUTPUT
+          echo "static_web_app_api_key=$(terraform output -raw static_web_app_api_key)" >> $GITHUB_OUTPUT
+          echo "function_app_url=$(terraform output -raw function_app_url)" >> $GITHUB_OUTPUT
+          echo "static_web_app_url=$(terraform output -raw static_web_app_url)" >> $GITHUB_OUTPUT
+        working-directory: ./infra
+        env:
+          ARM_CLIENT_ID: ${{ secrets.AZURE_CLIENT_ID }}
+          ARM_SUBSCRIPTION_ID: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+          ARM_TENANT_ID: ${{ secrets.AZURE_TENANT_ID }}
+          ARM_USE_OIDC: true
+
+      - name: Terraform Status Summary
+        run: |
+          echo "### Terraform Deployment Status ✅" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "**Function App URL:** ${{ steps.terraform_output.outputs.function_app_url }}" >> $GITHUB_STEP_SUMMARY
+          echo "**Static Web App URL:** ${{ steps.terraform_output.outputs.static_web_app_url }}" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "Infrastructure has been successfully provisioned!" >> $GITHUB_STEP_SUMMARY
+
+  deploy-function:
+    name: 'Deploy Azure Function'
+    runs-on: ubuntu-latest
+    needs: terraform
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+
+      - name: Install Function App dependencies
+        run: |
+          if [ -f package.json ]; then
+            npm ci --production
+          else
+            echo "No package.json found in ${{ env.AZURE_FUNCTIONAPP_PACKAGE_PATH }}"
+          fi
+        working-directory: ${{ env.AZURE_FUNCTIONAPP_PACKAGE_PATH }}
+
+      - name: Azure Login via OIDC
+        uses: azure/login@v2
+        with:
+          client-id: ${{ secrets.AZURE_CLIENT_ID }}
+          tenant-id: ${{ secrets.AZURE_TENANT_ID }}
+          subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+
+      - name: Deploy to Azure Functions
+        uses: Azure/functions-action@v1
+        with:
+          app-name: ${{ needs.terraform.outputs.function_app_name }}
+          package: ${{ env.AZURE_FUNCTIONAPP_PACKAGE_PATH }}
+
+      - name: Function Deployment Summary
+        run: |
+          echo "### Azure Function Deployment Status ✅" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "**Function App Name:** ${{ needs.terraform.outputs.function_app_name }}" >> $GITHUB_STEP_SUMMARY
+          echo "**Function App URL:** ${{ needs.terraform.outputs.function_app_url }}" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "Azure Functions have been successfully deployed!" >> $GITHUB_STEP_SUMMARY
+
+  deploy-frontend:
+    name: 'Deploy Static Web App'
+    runs-on: ubuntu-latest
+    needs: terraform
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          submodules: true
+          lfs: false
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+
+      - name: Install and Build React App
+        run: |
+          if [ -f package.json ]; then
+            npm ci
+            npm run build
+          else
+            echo "No package.json found in ${{ env.REACT_APP_PATH }}"
+          fi
+        working-directory: ${{ env.REACT_APP_PATH }}
+        env:
+          REACT_APP_FUNCTION_APP_URL: ${{ needs.terraform.outputs.function_app_url }}
+
+      - name: Deploy Static Web App
+        uses: Azure/static-web-apps-deploy@v1
+        with:
+          azure_static_web_apps_api_token: ${{ needs.terraform.outputs.static_web_app_api_key }}
+          repo_token: ${{ secrets.GITHUB_TOKEN }}
+          action: 'upload'
+          app_location: ${{ env.REACT_APP_PATH }}
+          output_location: 'build'
+          skip_app_build: true
+
+      - name: Static Web App Deployment Summary
+        run: |
+          echo "### Static Web App Deployment Status ✅" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "**Static Web App Name:** ${{ needs.terraform.outputs.static_web_app_name }}" >> $GITHUB_STEP_SUMMARY
+          echo "**Static Web App URL:** ${{ needs.terraform.outputs.static_web_app_url }}" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "Static Web App has been successfully deployed!" >> $GITHUB_STEP_SUMMARY
+
+  deployment-summary:
+    name: 'Deployment Summary'
+    runs-on: ubuntu-latest
+    needs: [terraform, deploy-function, deploy-frontend]
+    if: always()
+    
+    steps:
+      - name: Final Deployment Summary
+        run: |
+          echo "# 🚀 Full Stack Deployment Summary" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "## Infrastructure" >> $GITHUB_STEP_SUMMARY
+          echo "✅ Terraform deployment completed successfully" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "## Azure Function App" >> $GITHUB_STEP_SUMMARY
+          echo "- **Name:** ${{ needs.terraform.outputs.function_app_name }}" >> $GITHUB_STEP_SUMMARY
+          echo "- **URL:** ${{ needs.terraform.outputs.function_app_url }}" >> $GITHUB_STEP_SUMMARY
+          echo "- **Status:** ${{ needs.deploy-function.result }}" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "## Static Web App" >> $GITHUB_STEP_SUMMARY
+          echo "- **Name:** ${{ needs.terraform.outputs.static_web_app_name }}" >> $GITHUB_STEP_SUMMARY
+          echo "- **URL:** ${{ needs.terraform.outputs.static_web_app_url }}" >> $GITHUB_STEP_SUMMARY
+          echo "- **Status:** ${{ needs.deploy-frontend.result }}" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "---" >> $GITHUB_STEP_SUMMARY
+          echo "Deployment workflow completed at $(date -u +'%Y-%m-%d %H:%M:%S UTC')" >> $GITHUB_STEP_SUMMARY

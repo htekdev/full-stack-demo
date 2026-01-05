@@ -1,0 +1,15 @@
+{
+  "name": "fullstack-demo-api",
+  "version": "1.0.0",
+  "description": "Azure Functions backend for Full Stack Demo",
+  "scripts": {
+    "start": "func start",
+    "test": "echo \"No tests specified\""
+  },
+  "dependencies": {
+    "@azure/functions": "^4.0.0"
+  },
+  "devDependencies": {
+    "azure-functions-core-tools": "^4.x"
+  }
+}

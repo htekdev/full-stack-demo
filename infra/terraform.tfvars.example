@@ -1,0 +1,16 @@
+# Example terraform.tfvars file
+# Copy this to terraform.tfvars and fill in your values
+
+subscription_id       = "00000000-0000-0000-0000-000000000000"
+location              = "eastus"
+environment           = "dev"
+project_name          = "fullstackdemo"
+entra_app_client_id   = "00000000-0000-0000-0000-000000000000"
+entra_app_tenant_id   = "00000000-0000-0000-0000-000000000000"
+
+tags = {
+  ManagedBy   = "Terraform"
+  Project     = "FullStackDemo"
+  Owner       = "YourTeam"
+  CostCenter  = "Engineering"
+}
