@@ -1,11 +1,11 @@
 # Local variables for consistent naming
 locals {
-  resource_group_name      = "rg-${var.project_name}-${var.environment}"
-  storage_account_name     = "st${var.project_name}${var.environment}"
-  function_app_name        = "func-${var.project_name}-${var.environment}"
-  service_plan_name        = "asp-${var.project_name}-${var.environment}"
-  static_web_app_name      = "swa-${var.project_name}-${var.environment}"
-  
+  resource_group_name  = "rg-${var.project_name}-${var.environment}"
+  storage_account_name = "st${var.project_name}${var.environment}"
+  function_app_name    = "func-${var.project_name}-${var.environment}"
+  service_plan_name    = "asp-${var.project_name}-${var.environment}"
+  static_web_app_name  = "swa-${var.project_name}-${var.environment}"
+
   common_tags = merge(
     var.tags,
     {
@@ -29,10 +29,10 @@ resource "azurerm_storage_account" "function_storage" {
   account_tier             = "Standard"
   account_replication_type = "LRS"
   min_tls_version          = "TLS1_2"
-  
+
   # Security best practices
   allow_nested_items_to_be_public = false
-  
+
   tags = local.common_tags
 }
 
@@ -41,9 +41,9 @@ resource "azurerm_service_plan" "function_plan" {
   name                = local.service_plan_name
   resource_group_name = azurerm_resource_group.main.name
   location            = azurerm_resource_group.main.location
-  os_type             = "Linux"
-  sku_name            = "Y1" # Consumption plan
-  
+  os_type  = "Linux"
+  sku_name = "Y1" # Consumption plan
+
   tags = local.common_tags
 }
 
@@ -56,31 +56,31 @@ resource "azurerm_linux_function_app" "main" {
   storage_account_name       = azurerm_storage_account.function_storage.name
   storage_account_access_key = azurerm_storage_account.function_storage.primary_access_key
   https_only                 = true
-  
+
   site_config {
     application_stack {
       node_version = "20"
     }
-    
+
     cors {
       allowed_origins = [
         "https://${local.static_web_app_name}-*.azurestaticapps.net"
       ]
       support_credentials = false
     }
-    
+
     application_insights_connection_string = azurerm_application_insights.main.connection_string
   }
-  
+
   app_settings = {
-    "FUNCTIONS_WORKER_RUNTIME"       = "node"
-    "WEBSITE_RUN_FROM_PACKAGE"       = "1"
-    "FUNCTIONS_EXTENSION_VERSION"    = "~4"
-    "WEBSITE_NODE_DEFAULT_VERSION"   = "~20"
+    "FUNCTIONS_WORKER_RUNTIME"    = "node"
+    "WEBSITE_RUN_FROM_PACKAGE"    = "1"
+    "FUNCTIONS_EXTENSION_VERSION" = "~4"
+    "WEBSITE_NODE_DEFAULT_VERSION" = "~20"
   }
-  
+
   tags = local.common_tags
-  
+
   lifecycle {
     ignore_changes = [
       app_settings["WEBSITE_RUN_FROM_PACKAGE"],
@@ -94,7 +94,7 @@ resource "azurerm_application_insights" "main" {
   resource_group_name = azurerm_resource_group.main.name
   location            = azurerm_resource_group.main.location
   application_type    = "web"
-  
+
   tags = local.common_tags
 }
 
@@ -105,7 +105,7 @@ resource "azurerm_static_web_app" "main" {
   location            = var.location == "eastus" ? "eastus2" : var.location # SWA limited regions
   sku_tier            = "Free"
   sku_size            = "Free"
-  
+
   tags = local.common_tags
 }
 

@@ -1,6 +1,6 @@
 terraform {
   required_version = ">= 1.7.0"
-  
+
   required_providers {
     azurerm = {
       source  = "hashicorp/azurerm"
@@ -15,7 +15,8 @@ terraform {
     # storage_account_name = "sttfstate<unique>"
     # container_name       = "tfstate"
     # key                  = "full-stack-demo.terraform.tfstate"
-    use_oidc = true
+    use_oidc         = true
+    use_azuread_auth = true
   }
 }
 
@@ -25,7 +26,7 @@ provider "azurerm" {
       prevent_deletion_if_contains_resources = false
     }
   }
-  
+
   # Authentication via OIDC/Workload Identity Federation
   # The following will be automatically set by GitHub Actions:
   # - ARM_CLIENT_ID
