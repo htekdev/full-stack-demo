@@ -15,6 +15,7 @@ terraform {
     # storage_account_name = "sttfstate<unique>"
     # container_name       = "tfstate"
     # key                  = "full-stack-demo.terraform.tfstate"
+    use_oidc = true
   }
 }
 
