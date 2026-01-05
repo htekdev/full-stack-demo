@@ -63,7 +63,10 @@ resource "azurerm_linux_function_app" "main" {
     }
     
     cors {
-      allowed_origins = ["*"] # Configure appropriately for production
+      allowed_origins = [
+        "https://${local.static_web_app_name}-*.azurestaticapps.net"
+      ]
+      support_credentials = false
     }
     
     application_insights_connection_string = azurerm_application_insights.main.connection_string

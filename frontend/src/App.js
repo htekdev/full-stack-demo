@@ -96,7 +96,7 @@ function App() {
           </a>
           <span>|</span>
           <a
-            href="https://docs.microsoft.com/azure/static-web-apps"
+            href="https://learn.microsoft.com/azure/static-web-apps"
             target="_blank"
             rel="noopener noreferrer"
           >
