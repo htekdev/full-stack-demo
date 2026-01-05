@@ -63,7 +63,8 @@ jobs:
             -backend-config="resource_group_name=${{ secrets.TERRAFORM_STATE_RG }}" \
             -backend-config="storage_account_name=${{ secrets.TERRAFORM_STATE_STORAGE }}" \
             -backend-config="container_name=${{ secrets.TERRAFORM_STATE_CONTAINER }}" \
-            -backend-config="key=full-stack-demo.terraform.tfstate"
+            -backend-config="key=full-stack-demo.terraform.tfstate" \
+            -backend-config="use_oidc=true"
         working-directory: ./infra
         env:
           ARM_CLIENT_ID: ${{ secrets.AZURE_CLIENT_ID }}
