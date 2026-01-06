@@ -32,6 +32,7 @@ resource "azurerm_storage_account" "function_storage" {
   
   # Security best practices
   allow_nested_items_to_be_public = false
+  shared_access_key_enabled       = true  # Required for Function App
   
   tags = local.common_tags
 }
@@ -102,7 +103,7 @@ resource "azurerm_application_insights" "main" {
 resource "azurerm_static_web_app" "main" {
   name                = local.static_web_app_name
   resource_group_name = azurerm_resource_group.main.name
-  location            = var.location == "eastus" ? "eastus2" : var.location # SWA limited regions
+  location            = "westus2"  # SWA limited regions
   sku_tier            = "Free"
   sku_size            = "Free"
   
