@@ -90,6 +90,7 @@ resource "azurerm_linux_function_app" "main" {
   lifecycle {
     ignore_changes = [
       app_settings["WEBSITE_RUN_FROM_PACKAGE"],
+      auth_settings_v2,
     ]
   }
 }
