@@ -88,7 +88,6 @@ resource "azurerm_linux_function_app" "main" {
   tags = local.common_tags
 
   lifecycle {
-    create_before_destroy = true
     ignore_changes = [
       app_settings["WEBSITE_RUN_FROM_PACKAGE"],
     ]
