@@ -32,7 +32,7 @@ resource "azurerm_storage_account" "function_storage" {
 
   # Security best practices
   allow_nested_items_to_be_public = false
-  shared_access_key_enabled       = false  # Using managed identity and Azure AD auth
+  shared_access_key_enabled       = false
   
   tags = local.common_tags
 }
@@ -126,16 +126,22 @@ resource "azurerm_role_assignment" "function_storage_blob" {
   scope                = azurerm_storage_account.function_storage.id
   role_definition_name = "Storage Blob Data Owner"
   principal_id         = azurerm_linux_function_app.main.identity[0].principal_id
+
+  depends_on = [azurerm_linux_function_app.main]
 }
 
 resource "azurerm_role_assignment" "function_storage_queue" {
   scope                = azurerm_storage_account.function_storage.id
   role_definition_name = "Storage Queue Data Contributor"
   principal_id         = azurerm_linux_function_app.main.identity[0].principal_id
+
+  depends_on = [azurerm_linux_function_app.main]
 }
 
 resource "azurerm_role_assignment" "function_storage_table" {
   scope                = azurerm_storage_account.function_storage.id
   role_definition_name = "Storage Table Data Contributor"
   principal_id         = azurerm_linux_function_app.main.identity[0].principal_id
+
+  depends_on = [azurerm_linux_function_app.main]
 }
