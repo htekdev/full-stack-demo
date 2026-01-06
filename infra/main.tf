@@ -32,12 +32,8 @@ resource "azurerm_storage_account" "function_storage" {
 
   # Security best practices
   allow_nested_items_to_be_public = false
-<<<<<<< HEAD
   shared_access_key_enabled       = true  # Required for Function App
   
-=======
-
->>>>>>> fb38096b5d6a9be62f0216e079ab46c0b0643393
   tags = local.common_tags
 }
 
