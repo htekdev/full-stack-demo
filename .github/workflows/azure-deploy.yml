@@ -145,7 +145,7 @@ jobs:
       - name: Install Function App dependencies
         run: |
           if [ -f package.json ]; then
-            npm ci --production
+            npm install --production
           else
             echo "No package.json found in ${{ env.AZURE_FUNCTIONAPP_PACKAGE_PATH }}"
           fi
@@ -208,8 +208,8 @@ jobs:
           azure_static_web_apps_api_token: ${{ needs.terraform.outputs.static_web_app_api_key }}
           repo_token: ${{ secrets.GITHUB_TOKEN }}
           action: 'upload'
-          app_location: ${{ env.REACT_APP_PATH }}
-          output_location: 'build'
+          app_location: './frontend/build'
+          output_location: ''
           skip_app_build: true
 
       - name: Static Web App Deployment Summary
