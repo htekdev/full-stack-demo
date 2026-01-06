@@ -132,6 +132,7 @@ jobs:
     name: 'Deploy Azure Function'
     runs-on: ubuntu-latest
     needs: terraform
+    environment: production
     
     steps:
       - name: Checkout code
@@ -177,6 +178,7 @@ jobs:
     name: 'Deploy Static Web App'
     runs-on: ubuntu-latest
     needs: terraform
+    environment: production
     
     steps:
       - name: Checkout code
