@@ -27,10 +27,6 @@ provider "azurerm" {
     }
   }
 
-  # Authentication via OIDC/Workload Identity Federation
-  # The following will be automatically set by GitHub Actions:
-  # - ARM_CLIENT_ID
-  # - ARM_TENANT_ID
-  # - ARM_SUBSCRIPTION_ID
-  # - ARM_USE_OIDC=true
-}
+  # Use Azure AD authentication for storage operations
+  storage_use_azuread = true
+  
