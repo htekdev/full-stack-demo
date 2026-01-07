@@ -211,6 +211,7 @@ jobs:
           app_location: './frontend/build'
           output_location: ''
           skip_app_build: true
+          production_branch: 'main'
 
       - name: Static Web App Deployment Summary
         run: |
