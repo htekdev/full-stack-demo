@@ -1,0 +1,16 @@
+# Terraform Backend Configuration Example
+#
+# This file shows how to configure the Terraform backend for local development.
+# Copy this to backend.hcl and fill in your values.
+#
+# Usage:
+#   terraform init -backend-config=backend.hcl
+#
+
+resource_group_name  = "rg-terraform-state"
+storage_account_name = "sttfstateXXXXX"  # Replace XXXXX with your unique suffix
+container_name       = "tfstate"
+key                  = "full-stack-demo.terraform.tfstate"
+
+# Optional: If using a specific subscription
+# subscription_id      = "00000000-0000-0000-0000-000000000000"
