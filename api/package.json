@@ -2,6 +2,7 @@
   "name": "fullstack-demo-api",
   "version": "1.0.0",
   "description": "Azure Functions backend for Full Stack Demo",
+  "main": "src/functions/*.js",
   "scripts": {
     "start": "func start",
     "test": "echo \"No tests specified\""
