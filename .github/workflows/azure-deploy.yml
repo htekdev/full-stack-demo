@@ -201,8 +201,6 @@ jobs:
             echo "No package.json found in ${{ env.REACT_APP_PATH }}"
           fi
         working-directory: ${{ env.REACT_APP_PATH }}
-        env:
-          REACT_APP_FUNCTION_APP_URL: ${{ needs.terraform.outputs.function_app_url }}
 
       - name: Deploy Static Web App
         uses: Azure/static-web-apps-deploy@v1
