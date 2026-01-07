@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import './App.css';
 
+// Force rebuild - using Static Web App proxy
 function App() {
   const [message, setMessage] = useState('Loading...');
   const [error, setError] = useState(null);
